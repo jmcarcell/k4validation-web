@@ -1,4 +1,5 @@
 import os
+import sys
 import zipfile
 import requests
 import shutil
@@ -9,6 +10,11 @@ app = Flask(__name__)
 # Configuration
 CACHE_DIR = "cache"
 STATIC_PLOTS_DIR = "static/plots"
+
+try:
+    GITHUB_TOKEN = os.environ["GITHUB_TOKEN"]
+except KeyError:
+    sys.exit("Error: GITHUB_TOKEN environment variable is not set.")
 
 # Ensure directories exist
 os.makedirs(CACHE_DIR, exist_ok=True)
@@ -34,7 +40,6 @@ def download_and_extract_artifact(repo, artid):
     # Download artifact
     zip_path = f"{cache_path}.zip"
     try:
-        GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 
         headers = {"Authorization": f"token {GITHUB_TOKEN}"}
         response = requests.get(artifact_url, headers=headers)
