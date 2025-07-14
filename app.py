@@ -15,42 +15,19 @@ os.makedirs(CACHE_DIR, exist_ok=True)
 os.makedirs(STATIC_PLOTS_DIR, exist_ok=True)
 
 
-def get_artifact_url(repo, run_number):
-    """Get the artifact download URL from GitHub API"""
-    api_url = f"https://api.github.com/repos/{repo}/actions/runs/{run_number}/artifacts"
-
-    try:
-        response = requests.get(api_url)
-        response.raise_for_status()
-
-        artifacts = response.json().get("artifacts", [])
-        if not artifacts:
-            return None
-
-        print(f"Artifacts found: {artifacts}")
-        print(artifacts[0])
-        return artifacts[0]["archive_download_url"]
-    except requests.exceptions.RequestException:
-        return None
-
-
-def download_and_extract_artifact(repo, run_number):
+def download_and_extract_artifact(repo, artid):
     """Download and extract artifact, return the extraction path"""
-    cache_path = os.path.join(CACHE_DIR, f"{repo.replace('/', '_')}_{run_number}")
+    cache_path = os.path.join(CACHE_DIR, f"{repo.replace('/', '_')}_{artid}")
     plots_path = os.path.join(
-        STATIC_PLOTS_DIR, f"{repo.replace('/', '_')}_{run_number}"
+        STATIC_PLOTS_DIR, f"{repo.replace('/', '_')}_{artid}"
     )
 
-    # print(f'Cache path: {cache_path}')
-    # print(f'Plots path: {plots_path}')
     # Check if already cached
     if os.path.exists(plots_path):
-        print(f"Plots already cached at {plots_path}")
         return plots_path
 
     # Get artifact URL
-    artifact_url = get_artifact_url(repo, run_number)
-    print(f"Artifact URL: {artifact_url}")
+    artifact_url = f"https://api.github.com/repos/{repo}/actions/artifacts/{artid}/zip"
     if not artifact_url:
         return None
 
@@ -62,7 +39,6 @@ def download_and_extract_artifact(repo, run_number):
         headers = {"Authorization": f"token {GITHUB_TOKEN}"}
         response = requests.get(artifact_url, headers=headers)
         response.raise_for_status()
-        print(f"Response is {response}")
 
         with open(zip_path, "wb") as f:
             f.write(response.content)
@@ -79,7 +55,6 @@ def download_and_extract_artifact(repo, run_number):
 
         return plots_path
     except (requests.exceptions.RequestException, zipfile.BadZipFile):
-        print(f"Error downloading or extracting artifact for {repo} run {run_number}")
         # Clean up on error
         if os.path.exists(zip_path):
             os.remove(zip_path)
@@ -115,18 +90,18 @@ def index():
 def view_plots():
     """View plots for a repository and run"""
     repo = request.args.get("repo")
-    run = request.args.get("run")
+    artid = request.args.get("id")
 
-    if not repo or not run:
-        abort(400, "Both 'repo' and 'run' parameters are required")
+    if not repo or not artid:
+        abort(400, "Both 'repo' and 'id' parameters are required")
 
     try:
-        run_number = int(run)
+        artid = int(artid)
     except ValueError:
-        abort(400, "Run number must be an integer")
+        abort(400, "Artifact ID must be an integer")
 
     # Download and extract artifact
-    plots_path = download_and_extract_artifact(repo, run_number)
+    plots_path = download_and_extract_artifact(repo, artid)
     if not plots_path:
         abort(404, "Artifact not found or could not be downloaded")
 
@@ -141,13 +116,12 @@ def view_plots():
         {"name": "Check 2", "status": True},
     ]
 
-    print(f"Rendering plots for repo: {repo}, run: {run_number}")
     return render_template(
         "plots.html",
         repo=repo,
-        run=run_number,
+        run=artid,
         categories=categories,
-        plots_base_path=f"{repo.replace('/', '_')}_{run_number}",
+        plots_base_path=f"{repo.replace('/', '_')}_{artid}",
         checks=checks,
     )
 
