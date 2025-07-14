@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Plots - {{ repo }} #{{ run }}{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="/">Home</a> > {{ repo }} > Run #{{ run }}
+</div>
+
+<h1>Plots for {{ repo }}</h1>
+<h2>Run #{{ run }}</h2>
+
+<h2>Checks</h2>
+<div class="check-details">hello</div>
+<ul>
+    {% for check in checks %}
+        <li>
+            {% if check.status %}
+                <span class="check-pass">&#10003;</span>
+            {% else %}
+                <span class="check-fail">&#10007;</span>
+            {% endif %}
+            {{ check.name }}
+        </li>
+    {% endfor %}
+</ul>
+
+{% if categories %}
+    {% for category_name, plots in categories.items() %}
+    <div class="category">
+        <h3>{{ category_name }}</h3>
+        <div class="plots-grid">
+            {% for plot in plots %}
+            <div class="plot-container">
+                <img src="/static/plots/{{ plots_base_path }}/{{ category_name }}/{{ plot }}" 
+                     alt="{{ plot }}" 
+                     loading="lazy">
+                <div class="plot-title">{{ plot }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+{% else %}
+    <div class="error">
+        No plot categories found in the artifact.
+    </div>
+{% endif %}
+
+<div style="margin-top: 30px; padding: 15px; background-color: #e9ecef; border-radius: 4px;">
+    <strong>Repository:</strong> {{ repo }}<br>
+    <strong>Run Number:</strong> {{ run }}<br>
+    <strong>Categories Found:</strong> {{ categories.keys() | list | length }}
+</div>
+{% endblock %}

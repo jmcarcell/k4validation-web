@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}GitHub Artifact Viewer - Home{% endblock %}
+
+{% block content %}
+<h1>GitHub Artifact Viewer</h1>
+<p>Enter a repository and run number to view the plots from the GitHub Actions artifact.</p>
+
+<form action="/view" method="get">
+    <div class="form-group">
+        <label for="repo">Repository (owner/repo-name):</label>
+        <input type="text" id="repo" name="repo" placeholder="e.g., octocat/Hello-World" required>
+    </div>
+    
+    <div class="form-group">
+        <label for="run">Run Number:</label>
+        <input type="number" id="run" name="run" placeholder="e.g., 123456789" required>
+    </div>
+    
+    <button type="submit">View Plots</button>
+</form>
+
+<div style="margin-top: 30px; padding: 15px; background-color: #e9ecef; border-radius: 4px;">
+    <h3>How to use:</h3>
+    <ol>
+        <li>Enter the repository in the format "owner/repository-name"</li>
+        <li>Enter the GitHub Actions run number</li>
+        <li>Click "View Plots" to download and display the artifacts</li>
+    </ol>
+    <p><strong>Note:</strong> This tool works with public repositories and caches downloaded artifacts for faster subsequent access.</p>
+</div>
+{% endblock %}
