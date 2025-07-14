@@ -1,1 +1,1 @@
-python app.py
+flask run --port 8080
