@@ -110,10 +110,19 @@ def view_plots():
     if not plots_path:
         abort(404, "Artifact not found or could not be downloaded")
 
-    # Get categories and plots
+    # Check for histcmp-results type: HTML file in the html subdirectory
+    html_dir = os.path.join(plots_path, "html")
+    if os.path.exists(html_dir):
+        for item in os.listdir(html_dir):
+            if item.lower().endswith('.html'):
+                html_file = os.path.join(html_dir, item)
+                with open(html_file, 'r', encoding='utf-8') as f:
+                    return f.read()
+
+    # Check for Validation type: Fall back to existing plot display logic
     categories = get_plot_categories(plots_path)
     if not categories:
-        abort(404, "No plot categories found in artifact")
+        abort(404, "No plots or HTML found in artifact")
 
     # Hardcoded checks for now
     checks = [
@@ -133,7 +142,7 @@ def view_plots():
 
 @app.route("/static/plots/<path:filename>")
 def serve_plot(filename):
-    """Serve plot images"""
+    """Serve plot images and PDFs"""
     return send_from_directory(STATIC_PLOTS_DIR, filename)
 
 
