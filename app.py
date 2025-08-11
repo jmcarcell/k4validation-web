@@ -27,6 +27,7 @@ def download_and_extract_artifact(repo, artid):
     plots_path = os.path.join(
         STATIC_PLOTS_DIR, f"{repo.replace('/', '_')}_{artid}"
     )
+    zip_path = f"{cache_path}.zip"
 
     # Check if already cached
     if os.path.exists(plots_path):
@@ -59,7 +60,13 @@ def download_and_extract_artifact(repo, artid):
         os.remove(zip_path)
 
         return plots_path
-    except (requests.exceptions.RequestException, zipfile.BadZipFile):
+    except requests.exceptions.HTTPError as e:
+        print(f"DEBUG: HTTP Error: {e}")
+        if e.response.status_code == 404:
+            print("DEBUG: Artifact not found - check artifact ID and permissions")
+        return None
+    except (requests.exceptions.RequestException, zipfile.BadZipFile) as e:
+        print(f"DEBUG: Other error: {e}")
         # Clean up on error
         if os.path.exists(zip_path):
             os.remove(zip_path)
@@ -95,25 +102,34 @@ def index():
 def view_plots():
     """View plots for a repository and run"""
     repo = request.args.get("repo")
-    artid = request.args.get("id")
+    artid = request.args.get("run")  # Changed from "id" to "run"
 
     if not repo or not artid:
-        abort(400, "Both 'repo' and 'id' parameters are required")
+        abort(400, "Both 'repo' and 'run' parameters are required")  # Updated error message
 
     try:
         artid = int(artid)
     except ValueError:
-        abort(400, "Artifact ID must be an integer")
+        abort(400, "Run number must be an integer")
 
     # Download and extract artifact
     plots_path = download_and_extract_artifact(repo, artid)
     if not plots_path:
         abort(404, "Artifact not found or could not be downloaded")
 
-    # Get categories and plots
+    # Check for histcmp-results type: HTML file in the html subdirectory
+    html_dir = os.path.join(plots_path, "html")
+    if os.path.exists(html_dir):
+        for item in os.listdir(html_dir):
+            if item.lower().endswith('.html'):
+                html_file = os.path.join(html_dir, item)
+                with open(html_file, 'r', encoding='utf-8') as f:
+                    return f.read()
+
+    # Check for Validation type: Fall back to existing plot display logic
     categories = get_plot_categories(plots_path)
     if not categories:
-        abort(404, "No plot categories found in artifact")
+        abort(404, "No plots or HTML found in artifact")
 
     # Hardcoded checks for now
     checks = [
@@ -133,7 +149,7 @@ def view_plots():
 
 @app.route("/static/plots/<path:filename>")
 def serve_plot(filename):
-    """Serve plot images"""
+    """Serve plot images and PDFs"""
     return send_from_directory(STATIC_PLOTS_DIR, filename)
 
 
